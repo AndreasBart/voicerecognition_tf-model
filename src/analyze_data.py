@@ -14,13 +14,10 @@ class analyze_data:
       self.train_files = trainfiles 
       self.commands = commands
       self.spectrogram_ds = None
-      self.AUTOTUNE = None
+      self.AUTOTUNE = tf.data.AUTOTUNE
 
-
-
-      AUTOTUNE = tf.data.AUTOTUNE
       files_ds = tf.data.Dataset.from_tensor_slices(self.train_files)
-      waveform_ds = files_ds.map(self.get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+      waveform_ds = files_ds.map(self.get_waveform_and_label, num_parallel_calls=self.AUTOTUNE)
 
       #Analyze spectogramms of  
       rows = 3
@@ -58,7 +55,7 @@ class analyze_data:
       #plt.show()
 
       self.spectrogram_ds = waveform_ds.map(
-        self.get_spectrogram_and_label_id, num_parallel_calls=AUTOTUNE)
+        self.get_spectrogram_and_label_id, num_parallel_calls=self.AUTOTUNE)
       rows = 3
       cols = 3
       n = rows*cols

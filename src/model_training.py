@@ -19,41 +19,49 @@ class Model:
         self.data = data
         self.analyze = analyze
 
-        self.train_ds = analyze.spectrogram_ds
-        self.val_ds = self.preprocess_dataset(data.val_files)
-        self.test_ds = self.preprocess_dataset(data.test_files)
+        self.train_ds = self.analyze.spectrogram_ds
+        self.val_ds = self.preprocess_dataset(self.data.val_files)
+        self.test_ds = self.preprocess_dataset(self.data.test_files)
+
         batch_size = 64
-        train_ds = self.train_ds.batch(batch_size)
-        val_ds = self.val_ds.batch(batch_size)
-        train_ds = train_ds.cache().prefetch(analyze.AUTOTUNE)
-        val_ds = val_ds.cache().prefetch(analyze.AUTOTUNE)
+        self.train_ds = self.train_ds.batch(batch_size)
+        self.val_ds = self.val_ds.batch(batch_size)
+
+        self.train_ds = self.train_ds.cache().prefetch(self.analyze.AUTOTUNE)
+        self.val_ds = self.val_ds.cache().prefetch(self.analyze.AUTOTUNE)
 
 
     def preprocess_dataset(self, files):
-        files_ds = tf.data.Dataset.from_tensor_slices(files)
+
+        files_ds = tf.data.Dataset.from_tensor_slices(files)            
         output_ds = files_ds.map(
-            map_func=self.analyze.get_waveform_and_label,
-            num_parallel_calls=self.analyze.AUTOTUNE)
+        map_func=self.analyze.get_waveform_and_label,
+        num_parallel_calls = self.analyze.AUTOTUNE)
         output_ds = output_ds.map(
-            map_func=self.analyze.get_spectrogram_and_label_id,
-            num_parallel_calls=self.analyze.AUTOTUNE)
+        map_func=self.analyze.get_spectrogram_and_label_id,
+        num_parallel_calls=self.analyze.AUTOTUNE)
         return output_ds
 
 
     #Modell bauen und trainieren
 
     def build_train_model(self):
-        for spectrogram, _ in self.train_ds.take(1):
+        for spectrogram, _ in self.analyze.spectrogram_ds.take(1):
             input_shape = spectrogram.shape
         print('Input shape:', input_shape)
         num_labels = len(self.data.commands)
 
-        norm_layer = preprocessing.Normalization()
-        norm_layer.adapt(self.analyze.spectrogram_ds.map(lambda x, _: x))
+        # Instantiate the `tf.keras.layers.Normalization` layer.
+        norm_layer = layers.Normalization()
+        # Fit the state of the layer to the spectrograms
+        # with `Normalization.adapt`.
+        norm_layer.adapt(data=self.analyze.spectrogram_ds.map(map_func=lambda spec, label: spec))
 
         model = models.Sequential([
             layers.Input(shape=input_shape),
-            preprocessing.Resizing(32, 32), 
+            # Downsample the input.
+            layers.Resizing(32, 32),
+            # Normalize.
             norm_layer,
             layers.Conv2D(32, 3, activation='relu'),
             layers.Conv2D(64, 3, activation='relu'),
@@ -75,8 +83,8 @@ class Model:
 
         EPOCHS = 10
         history = model.fit(
-            self.train_ds, 
-            validation_data=self.val_ds,  
+            self.train_ds,
+            validation_data=self.val_ds,
             epochs=EPOCHS,
             callbacks=tf.keras.callbacks.EarlyStopping(verbose=1, patience=2),
         )
@@ -85,7 +93,6 @@ class Model:
         plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
         plt.legend(['loss', 'val_loss'])
         plt.show()
-
 
     #Leistung des Testsatzes bewerten
     def confusion_matrix(self):
