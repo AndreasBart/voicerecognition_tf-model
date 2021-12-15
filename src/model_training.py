@@ -5,11 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import tensorflow as tf
+import tempfile
 
 from tensorflow.keras import layers
 from tensorflow.keras import models
 from IPython import display
 from tensorflow.keras.layers.experimental import preprocessing
+import tensorflowjs as tfjs
 import analyze_data
 import load_data
 
@@ -18,6 +20,7 @@ class Model:
         
         self.data = data
         self.analyze = analyze
+        self.tfjs_target_dir = "C:/Users/baa37164/Desktop/model"
 
         self.train_ds = self.analyze.spectrogram_ds
         self.val_ds = self.preprocess_dataset(self.data.val_files)
@@ -82,13 +85,16 @@ class Model:
             metrics=['accuracy'],
         )
 
-        EPOCHS = 10
+        EPOCHS = 100
         history = self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=EPOCHS,
             callbacks=tf.keras.callbacks.EarlyStopping(verbose=1, patience=2),
         )
+
+        tfjs.converters.save_keras_model(self.model, self.tfjs_target_dir)
+        print(pathlib.Path().resolve())
 
         metrics = history.history
         plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
@@ -97,6 +103,7 @@ class Model:
 
     #Leistung des Testsatzes bewerten
     def confusion_matrix(self):
+        
         test_audio = []
         test_labels = []
 
@@ -124,13 +131,31 @@ class Model:
 
 
     #Inferenz für eine Audiodatei ausführen   
-    def inferenz(self):
-        sample_file = '..\data\mini_speech_commands\no\0ab3b47d_nohash_0.wav'
+    def inference(self):
+        sample_file = '../data/mini_speech_commands/no/1b4c9b89_nohash_3.wav'
 
         sample_ds = self.preprocess_dataset([str(sample_file)])
 
         for spectrogram, label in sample_ds.batch(1):
-            prediction = Model(spectrogram)
+            prediction = self.model(spectrogram)
             plt.bar(self.data.commands, tf.nn.softmax(prediction[0]))
             plt.title(f'Predictions for "{self.data.commands[label[0]]}"')
             plt.show()
+
+    def saveModel(self):
+        
+        MODEL_DIR = tempfile.gettempdir()
+        version = 1
+        export_path = os.path.join(MODEL_DIR, str(version))
+        print('export_path = {}\n'.format(export_path))
+
+        tf.keras.models.save_model(
+            self.model,
+            export_path,
+            overwrite=True,
+            include_optimizer=True,
+            save_format=None,
+            signatures=None,
+            options=None
+        )
+        print('\nSaved model:')
