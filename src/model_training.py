@@ -29,6 +29,7 @@ class Model:
 
         self.train_ds = self.train_ds.cache().prefetch(self.analyze.AUTOTUNE)
         self.val_ds = self.val_ds.cache().prefetch(self.analyze.AUTOTUNE)
+        self.model = models.Sequential
 
 
     def preprocess_dataset(self, files):
@@ -57,7 +58,7 @@ class Model:
         # with `Normalization.adapt`.
         norm_layer.adapt(data=self.analyze.spectrogram_ds.map(map_func=lambda spec, label: spec))
 
-        model = models.Sequential([
+        self.model = models.Sequential([
             layers.Input(shape=input_shape),
             # Downsample the input.
             layers.Resizing(32, 32),
@@ -73,16 +74,16 @@ class Model:
             layers.Dense(num_labels),
         ])
 
-        model.summary()
+        self.model.summary()
 
-        model.compile(
+        self.model.compile(
             optimizer=tf.keras.optimizers.Adam(),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=['accuracy'],
         )
 
         EPOCHS = 10
-        history = model.fit(
+        history = self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=EPOCHS,
@@ -106,7 +107,7 @@ class Model:
         test_audio = np.array(test_audio)
         test_labels = np.array(test_labels)
 
-        y_pred = np.argmax(Model.predict(test_audio), axis=1)
+        y_pred = np.argmax(self.model.predict(test_audio), axis=1)
         y_true = test_labels
 
         test_acc = sum(y_pred == y_true) / len(y_true)

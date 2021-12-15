@@ -19,6 +19,8 @@ def main():
       print("#init : initializes Datasets")
       print("#size : prints size of Datasets")
       print("#analyze : shows simple Analysis of Datasets")
+      print("#build : build and train the model")
+      print("#confusion_matrix : shows a confusion matrix")
     elif command == "clear":
       os.system("clear")
       print("#################\n## VOICEDRIVEN ##\n#################\n")
@@ -29,6 +31,9 @@ def main():
       data.size()
     elif command == "analyze":
       graphics = analyze_data.analyze_data(data.train_files, data.commands)
+    elif command == "confusion_matrix":
+      model = model_training.Model(data, graphics)
+      model.confusion_matrix()
     elif command == "build":
       model = model_training.Model(data, graphics)
       model.build_train_model()
