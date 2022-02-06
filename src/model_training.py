@@ -46,9 +46,6 @@ class Model:
         num_parallel_calls=self.analyze.AUTOTUNE)
         return output_ds
 
-
-    #Modell bauen und trainieren
-
     def build_train_model(self):
         for spectrogram, _ in self.analyze.spectrogram_ds.take(1):
             input_shape = spectrogram.shape
@@ -57,8 +54,7 @@ class Model:
 
         # Instantiate the `tf.keras.layers.Normalization` layer.
         norm_layer = layers.Normalization()
-        # Fit the state of the layer to the spectrograms
-        # with `Normalization.adapt`.
+        # Fit the state of the layer to the spectrograms with `Normalization.adapt`.
         norm_layer.adapt(data=self.analyze.spectrogram_ds.map(map_func=lambda spec, label: spec))
 
         self.model = models.Sequential([
@@ -84,7 +80,7 @@ class Model:
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=['accuracy'],
         )
-
+        #100 Epochs to allow the model to train until early stop
         EPOCHS = 100
         history = self.model.fit(
             self.train_ds,
@@ -101,9 +97,8 @@ class Model:
         plt.legend(['loss', 'val_loss'])
         plt.show()
 
-    #Leistung des Testsatzes bewerten
+    #Test accuracy for all labels
     def confusion_matrix(self):
-        
         test_audio = []
         test_labels = []
 
@@ -120,7 +115,6 @@ class Model:
         test_acc = sum(y_pred == y_true) / len(y_true)
         print(f'Test set accuracy: {test_acc:.0%}')
     
-    #Zeigt Verwirrungsmatrix an
         confusion_mtx = tf.math.confusion_matrix(y_true, y_pred) 
         plt.figure(figsize=(10, 8))
         sns.heatmap(confusion_mtx, xticklabels=self.data.commands, yticklabels=self.data.commands, 
@@ -130,8 +124,9 @@ class Model:
         plt.show()
 
 
-    #Inferenz für eine Audiodatei ausführen   
+    #Test own files  
     def inference(self):
+        #Path to the tested audiofile
         sample_file = '../data/mini_speech_commands/no/1b4c9b89_nohash_3.wav'
 
         sample_ds = self.preprocess_dataset([str(sample_file)])
@@ -142,6 +137,7 @@ class Model:
             plt.title(f'Predictions for "{self.data.commands[label[0]]}"')
             plt.show()
 
+    #Save model as SavedModel format
     def saveModel(self):
         
         MODEL_DIR = tempfile.gettempdir()
@@ -158,4 +154,4 @@ class Model:
             signatures=None,
             options=None
         )
-        print('\nSaved model:')
+        print('Saved successfully')
