@@ -10,7 +10,7 @@ class analyze_data:
 
   def __init__(self, trainfiles, commands):
 
-      # init vars
+      # initialize class vars
       self.train_files = trainfiles 
       self.commands = commands
       self.spectrogram_ds = None
@@ -19,7 +19,7 @@ class analyze_data:
       files_ds = tf.data.Dataset.from_tensor_slices(self.train_files)
       waveform_ds = files_ds.map(self.get_waveform_and_label, num_parallel_calls=self.AUTOTUNE)
 
-      #Analyze spectogramms of  
+      #Analyze spectrogramms of audio
       rows = 3
       cols = 3
       n = rows*cols
@@ -52,7 +52,7 @@ class analyze_data:
       axes[0].set_xlim([0, 16000])
       self.plot_spectrogram(spectrogram.numpy(), axes[1])
       axes[1].set_title('Spectrogram')
-      #plt.show()
+      plt.show()
 
       self.spectrogram_ds = waveform_ds.map(
         self.get_spectrogram_and_label_id, num_parallel_calls=self.AUTOTUNE)
@@ -67,7 +67,7 @@ class analyze_data:
         self.plot_spectrogram(np.squeeze(spectrogram.numpy()), ax)
         ax.set_title(commands[label_id.numpy()])
         ax.axis('off')
-      #plt.show()
+      plt.show()
 
   def decode_audio(self, audio_binary):
     audio, _ = tf.audio.decode_wav(audio_binary)
@@ -75,9 +75,6 @@ class analyze_data:
 
   def get_label(self, file_path):
     parts = tf.strings.split(input = file_path, sep = os.path.sep)
-
-    # Note: You'll use indexing here instead of tuple unpacking to enable this 
-    # to work in a TensorFlow graph.
     return parts[-2]
 
   def get_waveform_and_label(self, file_path):
@@ -86,14 +83,11 @@ class analyze_data:
     waveform = self.decode_audio(audio_binary)
     return waveform, label
 
-  #plt.show()
-
   def get_spectrogram(self, waveform):
     # Padding for files with less than 16000 samples
     zero_padding = tf.zeros([16000] - tf.shape(waveform), dtype=tf.float32)
 
-    # Concatenate audio with padding so that all audio clips will be of the 
-    # same length
+    # Concatenate audio with padding so that all audio clips will be of the same length
     waveform = tf.cast(waveform, tf.float32)
     equal_length = tf.concat([waveform, zero_padding], 0)
     spectrogram = tf.signal.stft(
@@ -104,8 +98,6 @@ class analyze_data:
     return spectrogram
 
   def plot_spectrogram(self, spectrogram, ax):
-    # Convert to frequencies to log scale and transpose so that the time is
-    # represented in the x-axis (columns). An epsilon is added to avoid log of zero.
     log_spec = np.log(spectrogram.T+np.finfo(float).eps)
     height = log_spec.shape[0]
     width = log_spec.shape[1]
