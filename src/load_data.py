@@ -17,8 +17,6 @@ class Data:
             self.val_files = None
             self.test_files = None
             self.commands = None
-            
-
 
       def getData(self):
             # Set seed for experiment reproducibility
@@ -46,9 +44,8 @@ class Data:
             num_samples = len(filenames)
             print('Number of total examples:', num_samples)
             print('Number of examples per label:', len(tf.io.gfile.listdir(str(data_dir/self.commands[0]))))
-            #print('Example file tensor:', filenames[0])
 
-            #Split the files into training, validation and test sets using a 80:10:10 ratio, respectively.
+            #Split the files into training, validation and test sets using a 80:10:10 ratio.
             self.train_files = filenames[:6400]
             self.val_files = filenames[6400: 6400 + 800]
             self.test_files = filenames[-800:]
